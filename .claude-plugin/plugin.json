@@ -1,0 +1,13 @@
+{
+  "name": "json-inspector",
+  "version": "0.1.0",
+  "description": "Inspect nested JSON data sources (schemas + sample records) via natural language — no greps required.",
+  "author": {
+    "name": "david26694",
+    "url": "https://github.com/david26694"
+  },
+  "homepage": "https://github.com/david26694/json-inspector",
+  "repository": "https://github.com/david26694/json-inspector",
+  "license": "MIT",
+  "keywords": ["json", "schema", "bigquery", "inspector", "data"]
+}
