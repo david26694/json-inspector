@@ -1,6 +1,6 @@
 {
   "name": "json-inspector",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Inspect nested JSON data sources (schemas + sample records) via natural language — no greps required.",
   "author": {
     "name": "david26694",

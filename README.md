@@ -34,18 +34,14 @@ claude plugin install json-inspector
 
 ## Configuration
 
-You need to tell the plugin where your JSON files live. Two options:
-
-### Option A — Project-local (recommended)
-
-Create a `.mcp.json` file in your project root. This stays local to that project and is never committed.
+The plugin provides an MCP server (`scripts/server.py`) that you register in your own project. Create a `.mcp.json` file in your **project root** and add it to `.gitignore` (paths are machine-specific):
 
 ```json
 {
   "mcpServers": {
     "json-inspector": {
       "command": "uv",
-      "args": ["run", "/Users/you/.claude/plugins/cache/json-inspector/json-inspector/0.1.0/scripts/server.py"],
+      "args": ["run", "~/.claude/plugins/cache/json-inspector/json-inspector/0.3.0/scripts/server.py"],
       "env": {
         "JSON_INSPECTOR_SAMPLES": "/absolute/path/to/sample_records.json",
         "JSON_INSPECTOR_SCHEMAS": "/absolute/path/to/schemas.json"
@@ -55,32 +51,23 @@ Create a `.mcp.json` file in your project root. This stays local to that project
 }
 ```
 
-Add it to `.gitignore` (paths are machine-specific):
+Replace the paths:
+- `0.3.0` → the version you installed (check `~/.claude/plugins/cache/json-inspector/json-inspector/`)
+- `JSON_INSPECTOR_SAMPLES` → absolute path to your `sample_records.json`
+- `JSON_INSPECTOR_SCHEMAS` → absolute path to your `schemas.json`
 
+Add to `.gitignore`:
 ```
 .mcp.json
 ```
 
-Claude Code automatically picks up `.mcp.json` from the project root — no extra commands needed. Each developer on the team creates their own copy with their own paths.
+Claude Code automatically picks up `.mcp.json` from the project root. Each developer creates their own copy with their own paths.
 
-> **Note:** The `args` path includes the plugin version (`0.1.0`). After running `claude plugin update json-inspector`, update that path to match the new version.
-
-### Option B — Global shell environment
-
-Add to `~/.zshrc` or `~/.bashrc`:
-
-```bash
-export JSON_INSPECTOR_SAMPLES="/absolute/path/to/sample_records.json"
-export JSON_INSPECTOR_SCHEMAS="/absolute/path/to/schemas.json"
-```
-
-Then `source ~/.zshrc` and restart Claude Code. Works everywhere but applies to all projects.
+> **Note:** The `args` path includes the plugin version. After `claude plugin update json-inspector@json-inspector`, update that path to match the new version.
 
 ---
 
-`${CLAUDE_PLUGIN_ROOT}` in the plugin's own config is injected automatically by Claude Code — you never set it yourself.
-
-Both files must be valid JSON:
+Both JSON files must be valid:
 - `sample_records.json`: `{"table.name": {"field": value, ...}, ...}`
 - `schemas.json`: `{"table.name": [{"name": "field", "type": "STRING", "description": "..."}, ...], ...}`
 
