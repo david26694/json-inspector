@@ -1,0 +1,20 @@
+{
+  "name": "json-inspector",
+  "description": "Claude Code plugin for inspecting nested JSON data sources via natural language",
+  "owner": {
+    "name": "david26694",
+    "url": "https://github.com/david26694"
+  },
+  "plugins": [
+    {
+      "name": "json-inspector",
+      "description": "Inspect nested JSON data sources (schemas + sample records) via natural language — no greps required.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "david26694",
+        "url": "https://github.com/david26694"
+      }
+    }
+  ]
+}
