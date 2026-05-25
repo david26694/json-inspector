@@ -112,6 +112,56 @@ Both files must be valid JSON:
 }
 ```
 
+## Generating your JSON files from BigQuery
+
+Run this script once to produce `sample_records.json` and `schemas.json` from your BQ tables.
+Requires `google-cloud-bigquery` (`pip install google-cloud-bigquery`).
+
+```python
+import json
+from google.cloud import bigquery
+
+TABLE_IDS = [
+    "project.dataset.table1",
+    "project.dataset.table2",
+]
+
+client = bigquery.Client()
+schemas = {}
+samples = {}
+
+for table_id in TABLE_IDS:
+    # Schema — get_table() includes field descriptions, INFORMATION_SCHEMA does not
+    table = client.get_table(table_id)
+    schemas[table_id] = [
+        {
+            "name": field.name,
+            "type": field.field_type,
+            "description": field.description or "",
+        }
+        for field in table.schema
+    ]
+
+    # Sample row — TO_JSON_STRING handles nested RECORDs, ARRAYs, and timestamps
+    rows = list(
+        client.query(
+            f"SELECT TO_JSON_STRING(t) AS row FROM `{table_id}` AS t LIMIT 1"
+        ).result()
+    )
+    if rows:
+        samples[table_id] = json.loads(rows[0]["row"])
+
+with open("schemas.json", "w") as f:
+    json.dump(schemas, f, indent=2)
+
+with open("sample_records.json", "w") as f:
+    json.dump(samples, f, indent=2, default=str)
+
+print(f"Done — {len(TABLE_IDS)} tables written.")
+```
+
+Re-run this whenever your table schemas change to keep the files up to date.
+
 ## How it works
 
 The plugin runs a Python MCP server (`scripts/server.py`) via `uv run` — no manual `pip install` needed. `uv` creates an isolated virtual environment automatically on first run. The server exposes five tools that Claude calls natively; no Anthropic API key is required from users.
