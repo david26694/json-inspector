@@ -25,7 +25,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ## Installation
 
 ```bash
-claude plugin install github.com/david26694/json-inspector
+# Register the marketplace (once)
+claude plugin marketplace add david26694/json-inspector
+
+# Install the plugin
+claude plugin install json-inspector
 ```
 
 ## Configuration
