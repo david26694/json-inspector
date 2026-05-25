@@ -4,8 +4,8 @@
       "command": "uv",
       "args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/server.py"],
       "env": {
-        "JSON_INSPECTOR_SAMPLES": "/path/to/your/sample_records.json",
-        "JSON_INSPECTOR_SCHEMAS": "/path/to/your/schemas.json"
+        "JSON_INSPECTOR_SAMPLES": "${JSON_INSPECTOR_SAMPLES}",
+        "JSON_INSPECTOR_SCHEMAS": "${JSON_INSPECTOR_SCHEMAS}"
       }
     }
   }

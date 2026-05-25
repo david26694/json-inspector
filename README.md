@@ -34,22 +34,14 @@ claude plugin install json-inspector
 
 ## Configuration
 
-After installing, edit `.mcp.json` in the plugin directory to point to your JSON files:
+Add two environment variables to your shell profile (`~/.zshrc` or `~/.bashrc`):
 
-```json
-{
-  "mcpServers": {
-    "json-inspector": {
-      "command": "uv",
-      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/server.py"],
-      "env": {
-        "JSON_INSPECTOR_SAMPLES": "/absolute/path/to/sample_records.json",
-        "JSON_INSPECTOR_SCHEMAS": "/absolute/path/to/schemas.json"
-      }
-    }
-  }
-}
+```bash
+export JSON_INSPECTOR_SAMPLES="/absolute/path/to/sample_records.json"
+export JSON_INSPECTOR_SCHEMAS="/absolute/path/to/schemas.json"
 ```
+
+Then reload your shell (`source ~/.zshrc`) and restart Claude Code. No plugin files need to be edited — `${CLAUDE_PLUGIN_ROOT}` is injected automatically by Claude Code, and the two path variables are read from your shell environment.
 
 Both files must be valid JSON:
 - `sample_records.json`: `{"table.name": {"field": value, ...}, ...}`
