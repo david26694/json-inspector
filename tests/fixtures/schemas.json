@@ -1,0 +1,18 @@
+{
+  "trendy.catalog.products": [
+    {"name": "product_id", "type": "STRING",    "description": "Unique product identifier"},
+    {"name": "sku",        "type": "STRING",    "description": "Stock keeping unit"},
+    {"name": "brand",      "type": "STRING",    "description": "Brand name"},
+    {"name": "category",   "type": "STRING",    "description": "Product category"},
+    {"name": "price_usd",  "type": "FLOAT",     "description": "Price in US dollars"},
+    {"name": "attributes", "type": "RECORD",    "description": "Product attributes"},
+    {"name": "inventory",  "type": "RECORD",    "description": "Inventory info"}
+  ],
+  "trendy.orders.purchases": [
+    {"name": "order_id",    "type": "STRING",    "description": "Unique order identifier"},
+    {"name": "customer_id", "type": "STRING",    "description": "Customer identifier"},
+    {"name": "status",      "type": "STRING",    "description": "Order status"},
+    {"name": "total_usd",   "type": "FLOAT",     "description": "Total order amount in USD"},
+    {"name": "shipping",    "type": "RECORD",    "description": "Shipping details"}
+  ]
+}
