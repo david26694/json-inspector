@@ -7,9 +7,47 @@ Reads JSON_INSPECTOR_SAMPLES and JSON_INSPECTOR_SCHEMAS env vars for file paths.
 Run with: uv run scripts/server.py
 """
 from __future__ import annotations
+import argparse as _argparse
 import os
+import os as _os
 import sys
+import sys as _sys
 from pathlib import Path
+from pathlib import Path as _Path
+
+
+def _validate_env() -> tuple[str, str]:
+    errors = []
+    samples = _os.environ.get("JSON_INSPECTOR_SAMPLES")
+    schemas = _os.environ.get("JSON_INSPECTOR_SCHEMAS")
+
+    if not samples:
+        errors.append("JSON_INSPECTOR_SAMPLES environment variable is not set")
+    elif not _Path(samples).exists():
+        errors.append(f"JSON_INSPECTOR_SAMPLES file not found: {samples}")
+
+    if not schemas:
+        errors.append("JSON_INSPECTOR_SCHEMAS environment variable is not set")
+    elif not _Path(schemas).exists():
+        errors.append(f"JSON_INSPECTOR_SCHEMAS file not found: {schemas}")
+
+    if errors:
+        for msg in errors:
+            print(f"json-inspector: {msg}", file=_sys.stderr)
+        _sys.exit(1)
+
+    return samples, schemas
+
+
+_parser = _argparse.ArgumentParser(add_help=False)
+_parser.add_argument("--validate-only", action="store_true")
+_args, _ = _parser.parse_known_args()
+
+_samples_path, _schemas_path = _validate_env()
+
+if _args.validate_only:
+    print("json-inspector: configuration OK", file=_sys.stderr)
+    _sys.exit(0)
 
 # Allow importing tools.py from the same scripts/ directory
 sys.path.insert(0, str(Path(__file__).parent))
@@ -17,8 +55,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from mcp.server.fastmcp import FastMCP
 from tools import find_field, get_field_info, get_field_value, list_fields, list_tables
 
-_samples = Path(os.environ["JSON_INSPECTOR_SAMPLES"])
-_schemas = Path(os.environ["JSON_INSPECTOR_SCHEMAS"])
+_samples = Path(_samples_path)
+_schemas = Path(_schemas_path)
 
 mcp = FastMCP("json-inspector")
 

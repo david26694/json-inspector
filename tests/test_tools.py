@@ -1,3 +1,7 @@
+import os
+import subprocess
+import sys
+
 from scripts.tools import list_tables, list_fields, get_field_info, get_field_value, find_field
 
 
@@ -93,3 +97,49 @@ def test_find_field_no_match(json_files):
     samples_path, schemas_path = json_files
     result = find_field("zzznomatch", samples_path, schemas_path)
     assert "message" in result[0]
+
+
+def test_server_exits_if_samples_missing(tmp_path):
+    schemas = tmp_path / "schemas.json"
+    schemas.write_text("{}")
+    env = {**os.environ, "JSON_INSPECTOR_SCHEMAS": str(schemas)}
+    env.pop("JSON_INSPECTOR_SAMPLES", None)
+    result = subprocess.run(
+        [sys.executable, "scripts/server.py", "--validate-only"],
+        capture_output=True, text=True, env=env, timeout=5,
+    )
+    assert result.returncode != 0
+    assert "JSON_INSPECTOR_SAMPLES" in result.stderr
+
+
+def test_server_exits_if_samples_file_not_found(tmp_path):
+    schemas = tmp_path / "schemas.json"
+    schemas.write_text("{}")
+    env = {
+        **os.environ,
+        "JSON_INSPECTOR_SAMPLES": "/nonexistent/path/samples.json",
+        "JSON_INSPECTOR_SCHEMAS": str(schemas),
+    }
+    result = subprocess.run(
+        [sys.executable, "scripts/server.py", "--validate-only"],
+        capture_output=True, text=True, env=env, timeout=5,
+    )
+    assert result.returncode != 0
+    assert "not found" in result.stderr.lower() or "JSON_INSPECTOR_SAMPLES" in result.stderr
+
+
+def test_server_validate_only_succeeds(tmp_path):
+    samples = tmp_path / "samples.json"
+    schemas = tmp_path / "schemas.json"
+    samples.write_text("{}")
+    schemas.write_text("{}")
+    env = {
+        **os.environ,
+        "JSON_INSPECTOR_SAMPLES": str(samples),
+        "JSON_INSPECTOR_SCHEMAS": str(schemas),
+    }
+    result = subprocess.run(
+        [sys.executable, "scripts/server.py", "--validate-only"],
+        capture_output=True, text=True, env=env, timeout=5,
+    )
+    assert result.returncode == 0
