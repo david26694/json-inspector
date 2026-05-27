@@ -10,45 +10,41 @@ sys.path.insert(0, str(Path(__file__).parent))
 from tools import list_tables, list_fields, get_field_info, get_field_value, find_field
 
 
-def _resolve_paths() -> tuple[Path, Path]:
-    samples = os.environ.get("JSON_INSPECTOR_SAMPLES")
-    schemas = os.environ.get("JSON_INSPECTOR_SCHEMAS")
-    missing = [name for name, val in [("JSON_INSPECTOR_SAMPLES", samples), ("JSON_INSPECTOR_SCHEMAS", schemas)] if not val]
-    if missing:
-        print(f"Error: missing environment variable(s): {', '.join(missing)}", file=sys.stderr)
+def _resolve_path() -> Path:
+    data_sources = os.environ.get("JSON_INSPECTOR_DATA_SOURCES")
+    if not data_sources:
+        print("Error: missing environment variable: JSON_INSPECTOR_DATA_SOURCES", file=sys.stderr)
         sys.exit(1)
-    return Path(samples), Path(schemas)
+    return Path(data_sources)
 
 
 def cmd_list_tables(args):
-    samples, schemas = _resolve_paths()
-    tables = list_tables(samples, schemas)
-    for t in tables:
+    for t in list_tables(_resolve_path()):
         print(t)
 
 
 def cmd_list_fields(args):
-    samples, schemas = _resolve_paths()
-    fields = list_fields(args.table, samples, schemas, source=args.source)
-    for f in fields:
+    for f in list_fields(args.table, _resolve_path(), source=args.source):
         print(f)
 
 
 def cmd_get_field_info(args):
-    samples, schemas = _resolve_paths()
-    info = get_field_info(args.table, args.field, samples, schemas)
+    info = get_field_info(args.table, args.field, _resolve_path())
     if isinstance(info, dict) and "error" not in info:
         print(f"name:        {info.get('name')}")
         print(f"type:        {info.get('type')}")
         print(f"description: {info.get('description')}")
+        if "null_pct" in info:
+            print(f"null_pct:    {info.get('null_pct')}")
+        if "n_distinct" in info:
+            print(f"n_distinct:  {info.get('n_distinct')}")
     else:
         print(info if isinstance(info, str) else info.get("error", info), file=sys.stderr)
         sys.exit(1)
 
 
 def cmd_get_field_value(args):
-    samples, schemas = _resolve_paths()
-    value = get_field_value(args.table, args.field_path, samples, schemas)
+    value = get_field_value(args.table, args.field_path, _resolve_path())
     if isinstance(value, dict) and "error" in value:
         print(value.get("error", value), file=sys.stderr)
         sys.exit(1)
@@ -56,8 +52,7 @@ def cmd_get_field_value(args):
 
 
 def cmd_find_field(args):
-    samples, schemas = _resolve_paths()
-    results = find_field(args.field_name, samples, schemas)
+    results = find_field(args.field_name, _resolve_path())
     for entry in results:
         if "message" in entry:
             print(entry["message"])
@@ -81,7 +76,7 @@ def main():
     p_gfi.add_argument("table")
     p_gfi.add_argument("field")
 
-    p_gfv = sub.add_parser("get-field-value", help="Get sample value for a field (dot notation supported)")
+    p_gfv = sub.add_parser("get-field-value", help="Get example value for a field (dot notation supported)")
     p_gfv.add_argument("table")
     p_gfv.add_argument("field_path")
 

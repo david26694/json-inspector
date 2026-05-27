@@ -1,13 +1,12 @@
 # tests/test_cli.py
-import subprocess, sys, json, os, pytest
+import subprocess, sys, os
 from pathlib import Path
 
 _FIXTURES = Path(__file__).parent / "fixtures"
-SAMPLES = str(_FIXTURES / "sample_records.json")
-SCHEMAS = str(_FIXTURES / "schemas.json")
+DATA_SOURCES = str(_FIXTURES / "data_sources.json")
 
 def _run(*args):
-    env = {**os.environ, "JSON_INSPECTOR_SAMPLES": SAMPLES, "JSON_INSPECTOR_SCHEMAS": SCHEMAS}
+    env = {**os.environ, "JSON_INSPECTOR_DATA_SOURCES": DATA_SOURCES}
     result = subprocess.run(
         [sys.executable, "scripts/cli.py", *args],
         capture_output=True, text=True, env=env,
@@ -51,11 +50,10 @@ def test_get_field_value_bad_path_exits_nonzero():
     assert r.returncode != 0
 
 def test_missing_env_exits_nonzero():
-    env = {k: v for k, v in os.environ.items()
-           if k not in ("JSON_INSPECTOR_SAMPLES", "JSON_INSPECTOR_SCHEMAS")}
+    env = {k: v for k, v in os.environ.items() if k != "JSON_INSPECTOR_DATA_SOURCES"}
     result = subprocess.run(
         [sys.executable, "scripts/cli.py", "list-tables"],
         capture_output=True, text=True, env=env,
     )
     assert result.returncode != 0
-    assert "JSON_INSPECTOR_SAMPLES" in result.stderr or "JSON_INSPECTOR_SCHEMAS" in result.stderr
+    assert "JSON_INSPECTOR_DATA_SOURCES" in result.stderr

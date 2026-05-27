@@ -23,27 +23,21 @@ def main():
 
     print("json-inspector: running configuration checks\n")
 
-    # 1. Environment variables
-    samples_path = os.environ.get("JSON_INSPECTOR_SAMPLES")
-    schemas_path = os.environ.get("JSON_INSPECTOR_SCHEMAS")
-
-    _check(bool(samples_path), "JSON_INSPECTOR_SAMPLES is set")
-    _check(bool(schemas_path), "JSON_INSPECTOR_SCHEMAS is set")
-
-    if not samples_path or not schemas_path:
+    # 1. Environment variable
+    data_sources_path = os.environ.get("JSON_INSPECTOR_DATA_SOURCES")
+    _check(bool(data_sources_path), "JSON_INSPECTOR_DATA_SOURCES is set")
+    if not data_sources_path:
         sys.exit(1)
 
-    # 2. Files exist
-    _check(Path(samples_path).exists(), f"samples file exists: {samples_path}")
-    _check(Path(schemas_path).exists(), f"schemas file exists: {schemas_path}")
+    # 2. File exists
+    _check(Path(data_sources_path).exists(), f"data sources file exists: {data_sources_path}")
 
     # 3. Valid JSON
-    for label, path in [("samples", samples_path), ("schemas", schemas_path)]:
-        try:
-            json.loads(Path(path).read_text())
-            _check(True, f"{label} file is valid JSON")
-        except json.JSONDecodeError as e:
-            _check(False, f"invalid JSON in {label} file ({path}): {e}")
+    try:
+        json.loads(Path(data_sources_path).read_text())
+        _check(True, "data sources file is valid JSON")
+    except json.JSONDecodeError as e:
+        _check(False, f"invalid JSON in data sources file ({data_sources_path}): {e}")
 
     # 4. Optional: .mcp.json presence
     if args.check_mcp:

@@ -3,101 +3,90 @@ import json
 from pathlib import Path
 
 
-def _load(samples_path: Path, schemas_path: Path) -> tuple[dict, dict]:
-    with samples_path.open() as f:
-        samples = json.load(f)
-    with schemas_path.open() as f:
-        schemas = json.load(f)
-    return samples, schemas
+def _load(data_sources_path: Path) -> dict:
+    with data_sources_path.open() as f:
+        return json.load(f)
 
 
-def _flatten_keys(obj: dict | list, prefix: str = "") -> list[str]:
+def _flatten_field_paths(fields: list, prefix: str = "") -> list[str]:
+    """Recursively flatten nested fields into dot-notation paths."""
     paths: list[str] = []
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            full = f"{prefix}.{k}" if prefix else k
-            paths.append(full)
-            if isinstance(v, (dict, list)):
-                paths.extend(_flatten_keys(v, full))
-    elif isinstance(obj, list) and obj and isinstance(obj[0], (dict, list)):
-        paths.extend(_flatten_keys(obj[0], prefix))
+    for f in fields:
+        full = f"{prefix}.{f['name']}" if prefix else f["name"]
+        paths.append(full)
+        if f.get("fields"):
+            paths.extend(_flatten_field_paths(f["fields"], full))
     return paths
 
 
-def _get_nested(obj: dict, dotted_path: str) -> object:
-    cur: object = obj
-    for part in dotted_path.split("."):
-        if isinstance(cur, dict) and part in cur:
-            cur = cur[part]
-        else:
-            return None
-    return cur
+def _find_field_by_path(fields: list, dotted_path: str) -> dict | None:
+    """Find a field dict by dot-notation path, traversing nested fields arrays."""
+    parts = dotted_path.split(".", 1)
+    for f in fields:
+        if f["name"] == parts[0]:
+            if len(parts) == 1:
+                return f
+            if f.get("fields"):
+                return _find_field_by_path(f["fields"], parts[1])
+    return None
 
 
-def list_tables(samples_path: Path, schemas_path: Path) -> list[str]:
-    samples, _ = _load(samples_path, schemas_path)
-    return list(samples.keys())
+def list_tables(data_sources_path: Path) -> list[str]:
+    return list(_load(data_sources_path).keys())
 
 
 def list_fields(
     table_name: str,
-    samples_path: Path,
-    schemas_path: Path,
+    data_sources_path: Path,
     source: str = "schema",
 ) -> list[str]:
-    samples, schemas = _load(samples_path, schemas_path)
+    data = _load(data_sources_path)
+    if table_name not in data:
+        return [f"Table '{table_name}' not found"]
+    fields = data[table_name]["fields"]
     if source == "schema":
-        if table_name not in schemas:
-            return [f"Table '{table_name}' not found in schemas"]
-        return [f["name"] for f in schemas[table_name]]
-    if table_name not in samples:
-        return [f"Table '{table_name}' not found in samples"]
-    return _flatten_keys(samples[table_name])
+        return [f["name"] for f in fields]
+    return _flatten_field_paths(fields)
 
 
 def get_field_info(
     table_name: str,
     field_name: str,
-    samples_path: Path,
-    schemas_path: Path,
+    data_sources_path: Path,
 ) -> dict:
-    _, schemas = _load(samples_path, schemas_path)
-    if table_name not in schemas:
+    data = _load(data_sources_path)
+    if table_name not in data:
         return {"error": f"Table '{table_name}' not found"}
-    match = [f for f in schemas[table_name] if f["name"] == field_name]
-    if not match:
+    field = _find_field_by_path(data[table_name]["fields"], field_name)
+    if field is None:
         return {"error": f"Field '{field_name}' not found in '{table_name}'"}
-    return match[0]
+    return {k: v for k, v in field.items() if k != "fields"}
 
 
 def get_field_value(
     table_name: str,
     field_path: str,
-    samples_path: Path,
-    schemas_path: Path,
+    data_sources_path: Path,
 ) -> object:
-    samples, _ = _load(samples_path, schemas_path)
-    if table_name not in samples:
+    data = _load(data_sources_path)
+    if table_name not in data:
         return {"error": f"Table '{table_name}' not found"}
-    value = _get_nested(samples[table_name], field_path)
-    if value is None:
-        return {"error": f"Path '{field_path}' not found in sample for '{table_name}'"}
-    return value
+    field = _find_field_by_path(data[table_name]["fields"], field_path)
+    if field is None or "example" not in field:
+        return {"error": f"Path '{field_path}' not found in '{table_name}'"}
+    return field["example"]
 
 
 def find_field(
     field_name: str,
-    samples_path: Path,
-    schemas_path: Path,
+    data_sources_path: Path,
 ) -> list[dict]:
-    samples, schemas = _load(samples_path, schemas_path)
+    data = _load(data_sources_path)
     needle = field_name.lower()
     results = []
-    for table in schemas:
-        schema_hits = {f["name"] for f in schemas[table] if needle in f["name"].lower()}
-        sample_paths = set(_flatten_keys(samples.get(table, {})))
-        sample_hits = {p for p in sample_paths if needle in p.lower()}
-        all_hits = sorted(schema_hits | sample_hits)
-        if all_hits:
-            results.append({"table": table, "matching_fields": all_hits})
+    for table, table_data in data.items():
+        all_paths = _flatten_field_paths(table_data["fields"])
+        hits = sorted(p for p in all_paths if needle in p.lower())
+        if hits:
+            results.append({"table": table, "matching_fields": hits})
     return results or [{"message": f"No field matching '{field_name}' found"}]

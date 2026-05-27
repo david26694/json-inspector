@@ -1,0 +1,46 @@
+{
+  "trendy.catalog.products": {
+    "fields": [
+      {"name": "product_id", "type": "STRING", "description": "Unique product identifier", "null_pct": 0.0, "n_distinct": 100, "example": "P-001"},
+      {"name": "sku",        "type": "STRING", "description": "Stock keeping unit",        "null_pct": 0.0, "n_distinct": 100, "example": "SKU-ABC"},
+      {"name": "brand",      "type": "STRING", "description": "Brand name",                "null_pct": 0.0, "n_distinct": 10,  "example": "AcmeCo"},
+      {"name": "category",   "type": "STRING", "description": "Product category",          "null_pct": 0.0, "n_distinct": 5,   "example": "Apparel"},
+      {"name": "price_usd",  "type": "FLOAT",  "description": "Price in US dollars",       "null_pct": 0.0, "n_distinct": 50,  "example": 29.99},
+      {
+        "name": "attributes", "type": "RECORD", "description": "Product attributes", "null_pct": 0.0,
+        "example": {"size": "M", "color": "blue", "material": "cotton"},
+        "fields": [
+          {"name": "size",     "type": "STRING", "description": "Size",     "null_pct": 0.0, "example": "M"},
+          {"name": "color",    "type": "STRING", "description": "Color",    "null_pct": 0.0, "example": "blue"},
+          {"name": "material", "type": "STRING", "description": "Material", "null_pct": 0.0, "example": "cotton"}
+        ]
+      },
+      {
+        "name": "inventory", "type": "RECORD", "description": "Inventory info", "null_pct": 0.0,
+        "example": {"in_stock": true, "units_available": 42},
+        "fields": [
+          {"name": "in_stock",         "type": "BOOLEAN", "description": "Whether in stock", "null_pct": 0.0, "example": true},
+          {"name": "units_available",  "type": "INTEGER", "description": "Units available",  "null_pct": 0.0, "example": 42}
+        ]
+      }
+    ]
+  },
+  "trendy.orders.purchases": {
+    "fields": [
+      {"name": "order_id",    "type": "STRING", "description": "Unique order identifier",  "null_pct": 0.0, "n_distinct": 100, "example": "O-999"},
+      {"name": "customer_id", "type": "STRING", "description": "Customer identifier",      "null_pct": 0.0, "n_distinct": 80,  "example": "C-123"},
+      {"name": "status",      "type": "STRING", "description": "Order status",             "null_pct": 0.0, "n_distinct": 5,   "example": "shipped"},
+      {"name": "total_usd",   "type": "FLOAT",  "description": "Total order amount in USD","null_pct": 0.0, "n_distinct": 50,  "example": 59.98},
+      {
+        "name": "shipping", "type": "RECORD", "description": "Shipping details", "null_pct": 0.0,
+        "example": {"address": "1 Main St", "city": "Springfield", "state": "IL", "zip": "62701"},
+        "fields": [
+          {"name": "address", "type": "STRING", "description": "Street address", "null_pct": 0.0, "example": "1 Main St"},
+          {"name": "city",    "type": "STRING", "description": "City",           "null_pct": 0.0, "example": "Springfield"},
+          {"name": "state",   "type": "STRING", "description": "State",          "null_pct": 0.0, "example": "IL"},
+          {"name": "zip",     "type": "STRING", "description": "ZIP code",       "null_pct": 0.0, "example": "62701"}
+        ]
+      }
+    ]
+  }
+}
