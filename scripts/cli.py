@@ -49,6 +49,9 @@ def cmd_get_field_info(args):
 def cmd_get_field_value(args):
     samples, schemas = _resolve_paths()
     value = get_field_value(args.table, args.field_path, samples, schemas)
+    if isinstance(value, dict) and "error" in value:
+        print(value.get("error", value), file=sys.stderr)
+        sys.exit(1)
     print(value)
 
 

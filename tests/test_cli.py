@@ -1,8 +1,10 @@
 # tests/test_cli.py
 import subprocess, sys, json, os, pytest
+from pathlib import Path
 
-SAMPLES = "tests/fixtures/sample_records.json"
-SCHEMAS = "tests/fixtures/schemas.json"
+_FIXTURES = Path(__file__).parent / "fixtures"
+SAMPLES = str(_FIXTURES / "sample_records.json")
+SCHEMAS = str(_FIXTURES / "schemas.json")
 
 def _run(*args):
     env = {**os.environ, "JSON_INSPECTOR_SAMPLES": SAMPLES, "JSON_INSPECTOR_SCHEMAS": SCHEMAS}
@@ -43,6 +45,10 @@ def test_get_field_info():
 def test_get_field_value():
     r = _run("get-field-value", "trendy.catalog.products", "attributes.size")
     assert r.returncode == 0
+
+def test_get_field_value_bad_path_exits_nonzero():
+    r = _run("get-field-value", "trendy.catalog.products", "nonexistent.path")
+    assert r.returncode != 0
 
 def test_missing_env_exits_nonzero():
     env = {k: v for k, v in os.environ.items()
