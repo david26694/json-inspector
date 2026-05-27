@@ -16,7 +16,7 @@ inspect-list-tables:
 # List fields in a table  (usage: just inspect-list-fields "my.table.name")
 inspect-list-fields table source="schema":
     JSON_INSPECTOR_SAMPLES={{samples}} JSON_INSPECTOR_SCHEMAS={{schemas}} \
-        uv run scripts/cli.py list-fields "{{table}}" --source {{source}}
+        uv run scripts/cli.py list-fields "{{table}}" --source "{{source}}"
 
 # Get type and description for a field  (usage: just inspect-get-field-info "table" "field")
 inspect-get-field-info table field:
