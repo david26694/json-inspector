@@ -1,6 +1,6 @@
 # json-inspector
 
-A Claude Code plugin for inspecting nested JSON data sources — schemas and sample records — via natural language. No manual greps required.
+A Claude Code plugin for inspecting nested JSON data sources — schemas and example values — via natural language. No manual greps required.
 
 ## What it does
 
@@ -8,7 +8,7 @@ Ask Claude questions like:
 - "Which tables have a field called price_usd?"
 - "List all nested fields in the products table"
 - "What type is customer_id and which tables have it?"
-- "Show me a sample value for shipping.state"
+- "Show me an example value for shipping.state"
 
 Claude uses five MCP tools under the hood to answer precisely.
 
@@ -37,7 +37,7 @@ claude plugin install json-inspector
 After installing, warm up the plugin's virtual environment once:
 
 ```bash
-uv run --project ~/.claude/plugins/cache/json-inspector/json-inspector/0.3.0 python -c "import mcp"
+uv run --project ~/.claude/plugins/cache/json-inspector/json-inspector/0.5.0 python -c "import mcp"
 ```
 
 Then create a `.mcp.json` file in your **project root** pointing directly to the venv's Python:
@@ -46,11 +46,10 @@ Then create a `.mcp.json` file in your **project root** pointing directly to the
 {
   "mcpServers": {
     "json-inspector": {
-      "command": "/Users/you/.claude/plugins/cache/json-inspector/json-inspector/0.3.0/.venv/bin/python3",
-      "args": ["/Users/you/.claude/plugins/cache/json-inspector/json-inspector/0.3.0/scripts/server.py"],
+      "command": "/Users/you/.claude/plugins/cache/json-inspector/json-inspector/0.5.0/.venv/bin/python3",
+      "args": ["/Users/you/.claude/plugins/cache/json-inspector/json-inspector/0.5.0/scripts/server.py"],
       "env": {
-        "JSON_INSPECTOR_SAMPLES": "/absolute/path/to/sample_records.json",
-        "JSON_INSPECTOR_SCHEMAS": "/absolute/path/to/schemas.json"
+        "JSON_INSPECTOR_DATA_SOURCES": "/absolute/path/to/data_sources.json"
       }
     }
   }
@@ -59,9 +58,8 @@ Then create a `.mcp.json` file in your **project root** pointing directly to the
 
 Replace:
 - `/Users/you` → your actual home directory (`echo $HOME`)
-- `0.3.0` → the version you installed (check `~/.claude/plugins/cache/json-inspector/json-inspector/`)
-- `JSON_INSPECTOR_SAMPLES` → absolute path to your `sample_records.json`
-- `JSON_INSPECTOR_SCHEMAS` → absolute path to your `schemas.json`
+- `0.5.0` → the version you installed (check `~/.claude/plugins/cache/json-inspector/json-inspector/`)
+- `JSON_INSPECTOR_DATA_SOURCES` → absolute path to your `data_sources.json`
 
 Add to `.gitignore` (paths are machine-specific):
 ```
@@ -76,41 +74,53 @@ Claude Code automatically picks up `.mcp.json` from the project root. When promp
 
 ---
 
-Both JSON files must be valid:
-- `sample_records.json`: `{"table.name": {"field": value, ...}, ...}`
-- `schemas.json`: `{"table.name": [{"name": "field", "type": "STRING", "description": "..."}, ...], ...}`
-
 ## JSON file format
 
-**sample_records.json** — one sample row per table, nested objects allowed:
+A single `data_sources.json` file contains schema metadata and example values for all tables:
+
 ```json
 {
-  "trendy.catalog.products": {
-    "product_id": "PROD_US_78234",
-    "brand": "Everlane",
-    "attributes": {"size": "M", "color": "black"}
-  },
-  "trendy.orders.purchases": {
-    "order_id": "ORD_US_5512893",
-    "status": "SHIPPED",
-    "shipping": {"city": "New York", "state": "NY"}
+  "my.project.table": {
+    "fields": [
+      {
+        "name": "order_id",
+        "type": "STRING",
+        "description": "Unique order identifier",
+        "null_pct": 0.0,
+        "n_distinct": 10000,
+        "example": "ORD_US_5512893"
+      },
+      {
+        "name": "shipping",
+        "type": "RECORD",
+        "description": "Shipping address details",
+        "null_pct": 0.0,
+        "example": {"city": "New York", "state": "NY"},
+        "fields": [
+          {"name": "city",  "type": "STRING", "description": "City",  "null_pct": 0.0, "example": "New York"},
+          {"name": "state", "type": "STRING", "description": "State", "null_pct": 0.0, "example": "NY"}
+        ]
+      }
+    ]
   }
 }
 ```
 
-**schemas.json** — flat list of field definitions per table:
-```json
-{
-  "trendy.catalog.products": [
-    {"name": "product_id", "type": "STRING", "description": "Unique product identifier"},
-    {"name": "price_usd", "type": "FLOAT", "description": "Retail price in USD"}
-  ]
-}
-```
+**Field properties:**
 
-## Generating your JSON files from BigQuery
+| Property | Required | Description |
+|---|---|---|
+| `name` | ✅ | Field name |
+| `type` | ✅ | BigQuery type: `STRING`, `FLOAT`, `INTEGER`, `BOOLEAN`, `RECORD`, `TIMESTAMP`, … |
+| `description` | ✅ | Human-readable description |
+| `null_pct` | optional | Fraction of NULL values (0.0–1.0) |
+| `n_distinct` | optional | Approximate number of distinct values |
+| `example` | optional | A representative value (used by `get-field-value`) |
+| `fields` | optional | Nested fields for `RECORD` types |
 
-Run this script once to produce `sample_records.json` and `schemas.json` from your BQ tables.
+## Generating your data_sources.json from BigQuery
+
+Run this script once to produce `data_sources.json` from your BQ tables.
 Requires `google-cloud-bigquery` (`pip install google-cloud-bigquery`).
 
 ```python
@@ -123,40 +133,47 @@ TABLE_IDS = [
 ]
 
 client = bigquery.Client()
-schemas = {}
-samples = {}
+data_sources = {}
 
-for table_id in TABLE_IDS:
-    # Schema — get_table() includes field descriptions, INFORMATION_SCHEMA does not
-    table = client.get_table(table_id)
-    schemas[table_id] = [
-        {
+def schema_to_fields(bq_fields) -> list:
+    result = []
+    for field in bq_fields:
+        entry = {
             "name": field.name,
             "type": field.field_type,
             "description": field.description or "",
         }
-        for field in table.schema
-    ]
+        if field.field_type == "RECORD" and field.fields:
+            entry["fields"] = schema_to_fields(field.fields)
+        result.append(entry)
+    return result
 
-    # Sample row — TO_JSON_STRING handles nested RECORDs, ARRAYs, and timestamps
+for table_id in TABLE_IDS:
+    table = client.get_table(table_id)
+    fields = schema_to_fields(table.schema)
+
+    # Fetch one sample row to populate example values
     rows = list(
         client.query(
             f"SELECT TO_JSON_STRING(t) AS row FROM `{table_id}` AS t LIMIT 1"
         ).result()
     )
-    if rows:
-        samples[table_id] = json.loads(rows[0]["row"])
+    sample = json.loads(rows[0]["row"]) if rows else {}
 
-with open("schemas.json", "w") as f:
-    json.dump(schemas, f, indent=2)
+    # Attach example values to top-level fields
+    for f in fields:
+        if f["name"] in sample:
+            f["example"] = sample[f["name"]]
 
-with open("sample_records.json", "w") as f:
-    json.dump(samples, f, indent=2, default=str)
+    data_sources[table_id] = {"fields": fields}
+
+with open("data_sources.json", "w") as f:
+    json.dump(data_sources, f, indent=2, default=str)
 
 print(f"Done — {len(TABLE_IDS)} tables written.")
 ```
 
-Re-run this whenever your table schemas change to keep the files up to date.
+Re-run this whenever your table schemas change to keep the file up to date.
 
 ## How it works
 
@@ -169,8 +186,7 @@ The plugin runs a Python MCP server (`scripts/server.py`) in an isolated virtual
 Run the health check to diagnose:
 
 ```bash
-export JSON_INSPECTOR_SAMPLES=/path/to/sample_records.json
-export JSON_INSPECTOR_SCHEMAS=/path/to/schemas.json
+export JSON_INSPECTOR_DATA_SOURCES=/path/to/data_sources.json
 uv run scripts/validate.py --check-mcp
 ```
 
