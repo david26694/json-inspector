@@ -143,3 +143,4 @@ def test_server_validate_only_succeeds(tmp_path):
         capture_output=True, text=True, env=env, timeout=5,
     )
     assert result.returncode == 0
+    assert "configuration OK" in result.stderr

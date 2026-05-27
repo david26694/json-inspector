@@ -8,7 +8,6 @@ Run with: uv run scripts/server.py
 """
 from __future__ import annotations
 import argparse as _argparse
-import os
 import os as _os
 import sys
 import sys as _sys
